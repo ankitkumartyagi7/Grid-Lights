@@ -1,56 +1,50 @@
 import { useEffect, useState } from 'react';
 
-const TOTAL = 9;
 const GRID_SIZE = 3;
+const TOTAL = GRID_SIZE * GRID_SIZE;
 
 export default function GridLights() {
-  const [activeCells, setActiveCells] = useState(new Set());
   const [activationOrder, setActivationOrder] = useState([]);
   const [isDeactivating, setIsDeactivating] = useState(false);
 
+  // Derived value — no separate state needed
+  const activeCells = new Set(activationOrder);
+
   const handleClick = (index) => {
-    // TODO: Implement click logic
-    let list = [...activationOrder]
-    if (list.indexOf(index) < 0) { 
-      list.push(index)
-      setActiveCells((prev) => { 
-        return new Set([...prev, index])
-      })
+    if (isDeactivating || activeCells.has(index)) return;
+
+    const nextOrder = [...activationOrder, index];
+    setActivationOrder(nextOrder);
+
+    if (nextOrder.length === TOTAL) {
+      setIsDeactivating(true);
     }
-    if (list.length == 9) { 
-      console.log('setting Deactivating')
-      setIsDeactivating(true)
-    }
-    setActivationOrder(list)
   };
 
   useEffect(() => {
-    console.log('calling startReverseDeactivation', isDeactivating)
+    if (!isDeactivating) return;
 
-    if (isDeactivating) { 
-      startReverseDeactivation(activationOrder)
-    }
-   }, [isDeactivating])
-
-  const startReverseDeactivation = (order) => {
-    // TODO: Implement reverse deactivation
-    let list = [...order]
-    list.forEach((_, i) => {
+    const timers = activationOrder.map((_, i) =>
       setTimeout(() => {
-        const newList = list.slice(0, list.length - i - 1);
-        setActiveCells(new Set(newList));
-      }, i * 100);
-    });
-    setTimeout(() => {
-      setActivationOrder([]);
-      setIsDeactivating(false);
-    }, list.length * 100);
-  };
+        setActivationOrder(
+          activationOrder.slice(0, activationOrder.length - i - 1)
+        );
+      }, i * 100)
+    );
+
+    timers.push(
+      setTimeout(() => {
+        setActivationOrder([]);
+        setIsDeactivating(false);
+      }, activationOrder.length * 100)
+    );
+
+    return () => timers.forEach(clearTimeout);
+  }, [isDeactivating]);
 
   const resetGrid = () => {
-    // TODO: Implement reset logic
-    setActivationOrder([])
-    setActiveCells(new Set([]))
+    setActivationOrder([]);
+    setIsDeactivating(false);
   };
 
   return (
@@ -68,13 +62,16 @@ export default function GridLights() {
           <div className="row" key={rowIdx}>
             {Array.from({ length: GRID_SIZE }, (_, colIdx) => {
               const index = rowIdx * GRID_SIZE + colIdx;
+
               return (
                 <div
                   key={index}
-                  className={`cell col ${activeCells.has(index) ? 'active' : ''}`}
+                  className={`cell col ${
+                    activeCells.has(index) ? 'active' : ''
+                  }`}
                   onClick={() => handleClick(index)}
                   data-testid={`cell-${index}`}
-                ></div>
+                />
               );
             })}
           </div>
