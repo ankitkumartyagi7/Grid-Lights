@@ -4,46 +4,41 @@ const GRID_SIZE = 3;
 const TOTAL = GRID_SIZE * GRID_SIZE;
 
 export default function GridLights() {
-  const [activationOrder, setActivationOrder] = useState([]);
+  const [order, setOrder] = useState([]);
   const [isDeactivating, setIsDeactivating] = useState(false);
 
-  // Derived value — no separate state needed
-  const activeCells = new Set(activationOrder);
-
   const handleClick = (index) => {
-    if (isDeactivating || activeCells.has(index)) return;
+    if (isDeactivating || order.includes(index)) return;
 
-    const nextOrder = [...activationOrder, index];
-    setActivationOrder(nextOrder);
+    const nextOrder = [...order, index];
+    setOrder(nextOrder);
 
     if (nextOrder.length === TOTAL) {
-      setIsDeactivating(true);
+      setTimeout(() => setIsDeactivating(true), 1000);
     }
   };
 
   useEffect(() => {
     if (!isDeactivating) return;
 
-    const timers = activationOrder.map((_, i) =>
-      setTimeout(() => {
-        setActivationOrder(
-          activationOrder.slice(0, activationOrder.length - i - 1)
-        );
-      }, i * 100)
-    );
+    const interval = setInterval(() => {
+      setOrder((prev) => {
+        const next = prev.slice(0, -1);
 
-    timers.push(
-      setTimeout(() => {
-        setActivationOrder([]);
-        setIsDeactivating(false);
-      }, activationOrder.length * 100)
-    );
+        if (next.length === 0) {
+          clearInterval(interval);
+          setIsDeactivating(false);
+        }
 
-    return () => timers.forEach(clearTimeout);
+        return next;
+      });
+    }, 100);
+
+    return () => clearInterval(interval);
   }, [isDeactivating]);
 
   const resetGrid = () => {
-    setActivationOrder([]);
+    setOrder([]);
     setIsDeactivating(false);
   };
 
@@ -51,23 +46,21 @@ export default function GridLights() {
     <div className="main-container">
       <h1 className="grid-title">Grid Lights</h1>
 
-      <div className="button-section">
-        <button onClick={resetGrid} data-testid="reset-btn">
-          Reset Grid
-        </button>
-      </div>
+      <button onClick={resetGrid} data-testid="reset-btn">
+        Reset Grid
+      </button>
 
       <div className="cinema-hall" data-testid="grid-lights">
-        {Array.from({ length: GRID_SIZE }, (_, rowIdx) => (
-          <div className="row" key={rowIdx}>
-            {Array.from({ length: GRID_SIZE }, (_, colIdx) => {
-              const index = rowIdx * GRID_SIZE + colIdx;
+        {Array.from({ length: GRID_SIZE }, (_, row) => (
+          <div className="row" key={row}>
+            {Array.from({ length: GRID_SIZE }, (_, col) => {
+              const index = row * GRID_SIZE + col;
 
               return (
                 <div
                   key={index}
                   className={`cell col ${
-                    activeCells.has(index) ? 'active' : ''
+                    order.includes(index) ? 'active' : ''
                   }`}
                   onClick={() => handleClick(index)}
                   data-testid={`cell-${index}`}
