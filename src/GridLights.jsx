@@ -32,7 +32,7 @@ export default function GridLights() {
 
         return next;
       });
-    }, 100);
+    }, 500);
 
     return () => clearInterval(interval);
   }, [isDeactivating]);
